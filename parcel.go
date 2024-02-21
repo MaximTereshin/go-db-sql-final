@@ -17,14 +17,12 @@ func NewParcelStore(db *sql.DB) ParcelStore {
 
 func (s ParcelStore) Add(p Parcel) (int64, error) {
 
-	res, err := s.db.Exec("INSERT INTO parcel (number, client, status, address, created_at) VALUES (:number, :client, :status, :address, :created_at)",
-		sql.Named("number", p.Number),
+	res, err := s.db.Exec("INSERT INTO parcel (client, status, address, created_at) VALUES (:client, :status, :address, :created_at)",
 		sql.Named("client", p.Client),
 		sql.Named("status", p.Status),
 		sql.Named("address", p.Address),
 		sql.Named("created_at", p.CreatedAt))
 	if err != nil {
-		fmt.Println(err)
 		return 0, err
 	}
 	return res.LastInsertId()
@@ -35,7 +33,6 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 	row := s.db.QueryRow("SELECT number, client, status, address, created_at FROM parcel WHERE number = :number", sql.Named("number", number))
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 	if err != nil {
-		fmt.Println(err)
 		return p, err
 	}
 
@@ -44,28 +41,17 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 
 func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 	var res []Parcel
+	p := Parcel{}
 	rows, err := s.db.Query("SELECT number, client, status, address, created_at FROM parcel WHERE client = :client", sql.Named("client", client))
 	if err != nil {
 		return res, err
 	}
-	for rows.Next() {
-		var (
-			number     int
-			client     int
-			status     string
-			address    string
-			created_at string
-		)
-
-		err := rows.Scan(&number, &client, &status, &address, &created_at)
-		if err != nil {
-			fmt.Println(err)
-			return res, err
-		}
-		p := Parcel{Number: number, Client: client, Status: status, Address: address, CreatedAt: created_at}
-		res = append(res, p)
-
+	err = rows.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
+	if err != nil {
+		return res, err
 	}
+	res = append(res, p)
+
 	return res, nil
 }
 
